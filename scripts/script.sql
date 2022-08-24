@@ -30,12 +30,11 @@ LIMIT 1;
 
 -- collegeplaying.schoolid, people.namefirst, people.namelast, salaries.salary JOIN all on playerid
 
--- IF TIME - Cast as money.
 
 SELECT c.schoolid,
        p.namefirst,
        p.namelast, 
-       SUM(s.salary)
+       CAST(CAST(SUM(s.salary) AS NUMERIC) AS MONEY)
 FROM people as p
 JOIN collegeplaying as c
      ON p.playerid = c.playerid
@@ -46,7 +45,60 @@ GROUP BY 1,2,3
 ORDER BY 4 DESC;
         
 
--- "vandy"	"David"	"Price"	$245,553,888
+-- "vandy" "David" "Price"	$245,553,888
+
+SELECT vandy.namefirst,
+       vandy.namelast,
+       CAST(CAST(SUM(s.salary) AS numeric) AS money)
+       FROM(SELECT p.playerid,
+                   p.namefirst,
+                   p.namelast,
+                   schoolid,  CAST(CAST(SUM(sa.salary) AS numeric) AS money)
+                   FROM people AS p
+                   JOIN collegeplaying AS cp
+                        USING (playerid)
+                   JOIN schools AS s
+                        USING (schoolid)
+                   JOIN salaries as sa
+                        USING (playerid)
+            WHERE s.schoolname LIKE '%Vanderbilt%'
+            GROUP BY p.playerid, schoolid, sa.salary) AS vandy
+LEFT JOIN salaries AS s
+    ON s.playerid = vandy.playerid
+GROUP BY vandy.namefirst,
+         vandy.namelast,
+         vandy
+ORDER BY 3 DESC;
+
+--
+
+SELECT vandy.namefirst,
+       vandy.namelast,
+       CAST(CAST(SUM(s.salary) AS numeric) AS money)
+       FROM(SELECT p.playerid,
+                   p.namefirst,
+                   p.namelast,
+                   schoolid,  CAST(CAST(SUM(sa.salary) AS numeric) AS money)
+                   FROM people AS p
+                   JOIN collegeplaying AS cp
+                        USING (playerid)
+                   JOIN schools AS s
+                        USING (schoolid)
+                   JOIN salaries as sa
+                        USING (playerid)
+            WHERE sa.teamid = 'vandy'
+            GROUP BY p.playerid, schoolid, sa.salary) AS vandy
+LEFT JOIN salaries AS s
+    ON s.playerid = vandy.playerid
+GROUP BY vandy.namefirst,
+         vandy.namelast,
+         vandy
+ORDER BY 3 DESC;        
+        
+        -- people to college playing
+        -- 
+
+
 
 -- 4. Using the fielding table, group players into three groups based on their position: label players with position OF as "Outfield", those with position "SS", "1B", "2B", and "3B" as "Infield", and those with position "P" or "C" as "Battery". Determine the number of putouts made by each of these three groups in 2016.
 
@@ -54,15 +106,15 @@ ORDER BY 4 DESC;
 
 SELECT playerid, 
        pos, 
-       SUM(po),
+       SUM(po) as spo,
        CASE 
            WHEN pos = 'of' THEN 'Outfield'
            WHEN pos = 'P' THEN 'Battery'
            WHEN pos = 'Catcher' THEN 'Battery'
            ELSE 'Infield' END AS position
 FROM fielding
-SORT BY 1,2,4
-;
+GROUP BY 1,2,4
+ORDER BY spo;
    
 -- 5. Find the average number of strikeouts per game by decade since 1920. Round the numbers you report to 2 decimal places. Do the same for home runs per game. Do you see any trends?
    
