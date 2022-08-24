@@ -28,10 +28,41 @@ LIMIT 1;
 
 -- 3. Find all players in the database who played at Vanderbilt University. Create a list showing each player’s first and last names as well as the total salary they earned in the major leagues. Sort this list in descending order by the total salary earned. Which Vanderbilt player earned the most money in the majors?
 
--- collegeplaying.schoolid, people.namefirst, people.namelast, 
-	
+-- collegeplaying.schoolid, people.namefirst, people.namelast, salaries.salary JOIN all on playerid
+
+-- IF TIME - Cast as money.
+
+SELECT c.schoolid,
+       p.namefirst,
+       p.namelast, 
+       SUM(s.salary)
+FROM people as p
+JOIN collegeplaying as c
+     ON p.playerid = c.playerid
+JOIN salaries as s
+     ON p.playerid = s.playerid
+WHERE schoolid = 'vandy'
+GROUP BY 1,2,3
+ORDER BY 4 DESC;
+        
+
+-- "vandy"	"David"	"Price"	$245,553,888
 
 -- 4. Using the fielding table, group players into three groups based on their position: label players with position OF as "Outfield", those with position "SS", "1B", "2B", and "3B" as "Infield", and those with position "P" or "C" as "Battery". Determine the number of putouts made by each of these three groups in 2016.
+
+-- fielding.pos, fielding.po
+
+SELECT playerid, 
+       pos, 
+       SUM(po),
+       CASE 
+           WHEN pos = 'of' THEN 'Outfield'
+           WHEN pos = 'P' THEN 'Battery'
+           WHEN pos = 'Catcher' THEN 'Battery'
+           ELSE 'Infield' END AS position
+FROM fielding
+SORT BY 1,2,4
+;
    
 -- 5. Find the average number of strikeouts per game by decade since 1920. Round the numbers you report to 2 decimal places. Do the same for home runs per game. Do you see any trends?
    
