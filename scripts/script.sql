@@ -145,7 +145,18 @@ ORDER BY 1 DESC;
 
 -- AVG(teams.so) , AVG(teams.hr)
 
--- SELECT 
+SELECT yearid, AVG(SUM(so)) AS strikeouts
+FROM teams
+GROUP BY 1
+ORDER BY 1;
+
+SELECT g, yearid, teamid
+FROM teams
+GROUP BY 1,2,3
+ORDER BY yearid;
+
+            
+--((p.yearid/10)*10) AS decade
 
 
 
@@ -153,12 +164,12 @@ ORDER BY 1 DESC;
 -- WITH games AS
 --     (SELECT yearid/10*10 AS decade, SUM(g)/2 AS total_games
 --         FROM teams
---         WHERE yearid > 1920
---         GROUP BY decade
---         ORDER BY decade),
+--      WHERE yearid > 1920
+--      GROUP BY decade
+--      ORDER BY decade),
 -- so AS
 --     (SELECT yearid/10*10 AS decade, SUM(so) AS total_strikeouts, SUM(HR) AS total_home_runs
---     FROM pitching
+--         FROM pitching
 --     WHERE yearid >= 1920 
 --     GROUP BY decade
 --     ORDER BY decade)
