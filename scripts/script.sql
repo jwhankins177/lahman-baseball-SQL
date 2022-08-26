@@ -114,25 +114,66 @@ ORDER BY 3 DESC;
 -- End guest code
 
 
--- 4. Using the fielding table, group players into three groups based on their position: label players with position OF as "Outfield", those with position "SS", "1B", "2B", and "3B" as "Infield", and those with position "P" or "C" as "Battery". Determine the number of putouts made by each of these three groups in 2016.
+-- -- 4. Using the fielding table, group players into three groups based on their position: 
+--       label players with position OF as "Outfield", 
+--       those with position "SS", "1B", "2B", and "3B" as "Infield"
+--       those with position "P" or "C" as "Battery". 
+--       Determine the number of putouts made by each of these three groups in 2016.
 
 -- fielding.pos, fielding.po
 
 
-SELECT playerid, 
+SELECT SUM(po),    
        CASE 
-           WHEN pos = 'of' THEN 'Outfield'
-           WHEN pos = 'P' THEN 'Battery'
-           WHEN pos = 'Catcher' THEN 'Battery'
+           WHEN LOWER(pos) = 'of' THEN 'Outfield'
+           WHEN LOWER(pos) IN ('p', 'c') THEN 'Battery'
            ELSE 'Infield' 
-                END AS position
+            END AS position
 FROM fielding
-GROUP BY 1,2,3,4
-ORDER BY 4 DESC;
+WHERE yearid = '2016'
+GROUP BY 2
+ORDER BY 1 DESC;
+
+
+-- 41424	"battery"
+-- 29560	"outfield"
+-- 58934	"infield"
+
 
    
 -- 5. Find the average number of strikeouts per game by decade since 1920. Round the numbers you report to 2 decimal places. Do the same for home runs per game. Do you see any trends?
-   
+
+-- AVG(teams.so) , AVG(teams.hr)
+
+-- SELECT 
+
+
+
+
+-- WITH games AS
+--     (SELECT yearid/10*10 AS decade, SUM(g)/2 AS total_games
+--         FROM teams
+--         WHERE yearid > 1920
+--         GROUP BY decade
+--         ORDER BY decade),
+-- so AS
+--     (SELECT yearid/10*10 AS decade, SUM(so) AS total_strikeouts, SUM(HR) AS total_home_runs
+--     FROM pitching
+--     WHERE yearid >= 1920 
+--     GROUP BY decade
+--     ORDER BY decade)
+
+-- SELECT g.decade, 
+--        total_games, 
+--        total_strikeouts, 
+--        CAST(total_strikeouts AS float)/CAST(total_games AS float) AS strikeouts_per_game, 
+--        CAST(total_home_runs AS float)/CAST(total_games AS float) AS home_runs_per_game
+-- FROM games AS g
+-- INNER JOIN so AS so
+--     ON g.decade = so.decade
+-- GROUP BY g.decade, total_games, total_strikeouts, total_home_runs
+-- ORDER BY g.decade;
+
 
 -- 6. Find the player who had the most success stealing bases in 2016, where __success__ is measured as the percentage of stolen base attempts which are successful. (A stolen base attempt results either in a stolen base or being caught stealing.) Consider only players who attempted _at least_ 20 stolen bases.
 	
