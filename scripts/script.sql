@@ -25,11 +25,9 @@ LIMIT 1;
 
 -- ANSWER -- 43	 "Edward Carl"	1 Game	"SLA" St. Louis Browns
 
-
 -- 3. Find all players in the database who played at Vanderbilt University. Create a list showing each player’s first and last names as well as the total salary they earned in the major leagues. Sort this list in descending order by the total salary earned. Which Vanderbilt player earned the most money in the majors?
 
 -- collegeplaying.schoolid, people.namefirst, people.namelast, salaries.salary JOIN all on playerid
-
 
 SELECT c.schoolid,
        p.namefirst,
@@ -58,62 +56,6 @@ WHERE namelast = 'Price'
 GROUP BY 1,2
 ORDER BY 3 DESC;
 
-
--- Guest code
--- SELECT vandy.namefirst,
---        vandy.namelast,
---        CAST(CAST(SUM(s.salary) AS numeric) AS money)
---        FROM(SELECT p.playerid,
---                    p.namefirst,
---                    p.namelast,
---                    schoolid,  CAST(CAST(SUM(sa.salary) AS numeric) AS money)
---                    FROM people AS p
---                    JOIN collegeplaying AS cp
---                         USING (playerid)
---                    JOIN schools AS s
---                         USING (schoolid)
---                    JOIN salaries as sa
---                         USING (playerid)
---             WHERE s.schoolname LIKE '%Vanderbilt%'
---             GROUP BY p.playerid, schoolid, sa.salary) AS vandy
--- LEFT JOIN salaries AS s
---     ON s.playerid = vandy.playerid
--- GROUP BY vandy.namefirst,
---          vandy.namelast,
---          vandy
--- ORDER BY 3 DESC;
-
--- --
-
--- SELECT vandy.namefirst,
---        vandy.namelast,
---        CAST(CAST(SUM(s.salary) AS numeric) AS money)
---        FROM(SELECT p.playerid,
---                    p.namefirst,
---                    p.namelast,
---                    schoolid,  CAST(CAST(SUM(sa.salary) AS numeric) AS money)
---                    FROM people AS p
---                    JOIN collegeplaying AS cp
---                         USING (playerid)
---                    JOIN schools AS s
---                         USING (schoolid)
---                    JOIN salaries as sa
---                         USING (playerid)
---             WHERE sa.teamid = 'vandy'
---             GROUP BY p.playerid, schoolid, sa.salary) AS vandy
--- LEFT JOIN salaries AS s
---     ON s.playerid = vandy.playerid
--- GROUP BY vandy.namefirst,
---          vandy.namelast,
---          vandy
--- ORDER BY 3 DESC;        
-        
-        -- people to college playing
-        -- 
--- 
--- End guest code
-
-
 -- -- 4. Using the fielding table, group players into three groups based on their position: 
 --       label players with position OF as "Outfield", 
 --       those with position "SS", "1B", "2B", and "3B" as "Infield"
@@ -121,7 +63,6 @@ ORDER BY 3 DESC;
 --       Determine the number of putouts made by each of these three groups in 2016.
 
 -- fielding.pos, fielding.po
-
 
 SELECT SUM(po),    
        CASE 
@@ -134,60 +75,82 @@ WHERE yearid = '2016'
 GROUP BY 2
 ORDER BY 1 DESC;
 
-
 -- 41424	"battery"
 -- 29560	"outfield"
 -- 58934	"infield"
 
 
-   
--- 5. Find the average number of strikeouts per game by decade since 1920. Round the numbers you report to 2 decimal places. Do the same for home runs per game. Do you see any trends?
+-- 5. Find the average number of strikeouts (by batters) per game by decade since 1920. 
+--    Round the numbers you report to 2 decimal places. 
+--    Do the same for home runs per game. 
+--    Do you see any trends?
 
--- AVG(teams.so) , AVG(teams.hr)
-
-SELECT yearid, AVG(SUM(so)) AS strikeouts
+Select CASE WHEN yearid BETWEEN 1920 AND 1929 THEN '1920s'
+	        WHEN yearid BETWEEN 1930 AND 1939 THEN '1930s'
+	        WHEN yearid BETWEEN 1940 AND 1949 THEN '1940s'
+	        WHEN yearid BETWEEN 1950 AND 1959 THEN '1950s'
+	        WHEN yearid BETWEEN 1960 AND 1969 THEN '1960s'
+	        WHEN yearid BETWEEN 1970 AND 1979 THEN '1970s'
+	        WHEN yearid BETWEEN 1980 AND 1989 THEN '1980s'
+	        WHEN yearid BETWEEN 1990 AND 1999 THEN '1990s'
+	        WHEN yearid BETWEEN 2000 AND 2009 THEN '2000s'
+	        WHEN yearid BETWEEN 2010 AND 2019 THEN '2010s'
+	            End As decade,
+            ROUND(CAST(SUM(so) AS DECIMAL)/CAST(SUM(g) AS DECIMAL), 2) AS avg_strikeouts,
+            ROUND(CAST(SUM(hr) AS DECIMAL)/CAST(SUM(g) AS DECIMAL), 2) AS avg_homeruns
 FROM teams
+Where yearid >= 1920
 GROUP BY 1
 ORDER BY 1;
 
-SELECT g, yearid, teamid
+SELECT teamid, so, yearid
 FROM teams
-GROUP BY 1,2,3
+WHERE yearid = '1880'
+GROUP BY 1, 2, 3
 ORDER BY yearid;
 
-            
---((p.yearid/10)*10) AS decade
 
-
-
-
--- WITH games AS
---     (SELECT yearid/10*10 AS decade, SUM(g)/2 AS total_games
---         FROM teams
---      WHERE yearid > 1920
---      GROUP BY decade
---      ORDER BY decade),
--- so AS
---     (SELECT yearid/10*10 AS decade, SUM(so) AS total_strikeouts, SUM(HR) AS total_home_runs
---         FROM pitching
---     WHERE yearid >= 1920 
---     GROUP BY decade
---     ORDER BY decade)
-
--- SELECT g.decade, 
---        total_games, 
---        total_strikeouts, 
---        CAST(total_strikeouts AS float)/CAST(total_games AS float) AS strikeouts_per_game, 
---        CAST(total_home_runs AS float)/CAST(total_games AS float) AS home_runs_per_game
--- FROM games AS g
--- INNER JOIN so AS so
---     ON g.decade = so.decade
--- GROUP BY g.decade, total_games, total_strikeouts, total_home_runs
--- ORDER BY g.decade;
-
+-- YEAR    SO      HR
+-- "1920s"	2.81	0.40
+-- "1930s"	3.32	0.55
+-- "1940s"	3.55	0.52
+-- "1950s"	4.40	0.84
+-- "1960s"	5.72	0.82
+-- "1970s"	5.14	0.75
+-- "1980s"	5.36	0.81
+-- "1990s"	6.15	0.96
+-- "2000s"	6.56	1.07
+-- "2010s"	7.52	0.98
 
 -- 6. Find the player who had the most success stealing bases in 2016, where __success__ is measured as the percentage of stolen base attempts which are successful. (A stolen base attempt results either in a stolen base or being caught stealing.) Consider only players who attempted _at least_ 20 stolen bases.
-	
+
+-- batting.playerid, batting.SB(stolen bases), batting.CS(caught stealing), batting.yearid, people.namefirst, people.namelast
+
+SELECT b.yearid, 
+       b.playerid,
+       CONCAT(p.namefirst, ' ', p.namelast) AS name,
+       b.sb, 
+       b.cs, 
+       ROUND(b.sb/(b.sb+b.cs)::DECIMAL, 2) AS steal_rate
+FROM batting as b
+JOIN people as p
+    USING(playerid)
+WHERE b.yearid = '2016' AND b.sb + b.cs >= 20
+GROUP BY 1, 2, 3, 4, 5
+ORDER BY 6 DESC;
+
+--clean code
+
+SELECT CONCAT(p.namefirst, ' ', p.namelast) AS name,
+       ROUND(b.sb/(b.sb+b.cs)::DECIMAL, 2) AS steal_rate
+FROM batting as b
+JOIN people as p
+    USING(playerid)
+WHERE b.yearid = '2016' AND b.sb + b.cs >= 20
+GROUP BY 1, 2
+ORDER BY 2 DESC;
+
+-- "Chris Owings"	0.91
 
 -- 7.  From 1970 – 2016, what is the largest number of wins for a team that did not win the world series? What is the smallest number of wins for a team that did win the world series? Doing this will probably result in an unusually small number of wins for a world series champion – determine why this is the case. Then redo your query, excluding the problem year. How often from 1970 – 2016 was it the case that a team with the most wins also won the world series? What percentage of the time?
 
