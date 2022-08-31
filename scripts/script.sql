@@ -300,18 +300,134 @@ LIMIT 5;
 
 SELECT * 
 FROM awardsmanagers
---WHERE playerid = 'wrighha01';
+WHERE LOWER(awardid) = LOWER('tsn manager of the year')
 
 SELECT * 
 FROM people
-WHERE playerid = 'wrighha01';
+WHERE playerid = 'johnsda02';
 
-WITH doublewinners AS
-                   (SELECT playerid, lgid
+--
+-- List of names who have won both.
+
+WITH nlwinners AS
+                   (SELECT playerid, lgid, awardid, yearid
                    FROM awardsmanagers
-                   WHERE LOWER(awardid) = LOWER('tsn manager of the year'))
+                   WHERE LOWER(awardid) = LOWER('tsn manager of the year')
+                   AND LOWER(lgid) = LOWER('NL')),
+     alwinners AS
+                   (SELECT playerid, lgid, awardid, yearid
+                   FROM awardsmanagers
+                   WHERE LOWER(awardid) = LOWER('tsn manager of the year')
+                   AND LOWER(lgid) = LOWER('AL'))
+SELECT DISTINCT(p.namefirst, p.namelast)
+FROM nlwinners AS n
+JOIN alwinners AS a
+    ON n.playerid = a.playerid
+JOIN people as p
+    ON n.playerid = p.playerid
+JOIN teams as t
+    ON n.lgid = t.lgid;
+    
+-- ANSWER "(Davey,Johnson)"
+--        "(Jim,Leyland)"
+
+--
+
+WITH nlwinners AS
+                   (SELECT playerid, lgid, awardid, yearid 
+                   FROM awardsmanagers
+                   WHERE LOWER(awardid) = LOWER('tsn manager of the year')
+                   AND LOWER(lgid) = LOWER('NL')),
+     alwinners AS
+                   (SELECT playerid, lgid, awardid, yearid
+                   FROM awardsmanagers
+                   WHERE LOWER(awardid) = LOWER('tsn manager of the year')
+                   AND LOWER(lgid) = LOWER('AL'))
+SELECT DISTINCT(p.namefirst, p.namelast)
+FROM nlwinners AS n
+JOIN alwinners AS a
+    ON n.playerid = a.playerid
+JOIN people as p
+    ON n.playerid = p.playerid
+JOIN teams as t
+    ON n.lgid = t.lgid
+JOIN awardsmanagers as w
+    ON n.playerid = w.playerid
+WHERE LOWER(w.awardid) = LOWER('tsn manager of the year')
+    OR LOWER(w.awardid) = LOWER('tsn manager of the year')
+
+--
+
+WITH team_name AS
+(SELECT name
+FROM teams
+LEFT JOIN managers
+USING (teamid))
+
+SELECT DISTINCT a1.playerid, CONCAT(p.namefirst,' ',p.namelast) AS full_name, a2.awardid, a2.yearid AS NL_year, a2.lgid, a3.yearid AS AL_year, a3.lgid
+FROM awardsmanagers AS a1
+JOIN awardsmanagers AS a2
+ON a1.playerid = a2.playerid AND a2.lgid = 'NL'
+JOIN awardsmanagers AS a3
+ON a2.playerid = a3.playerid AND a3.lgid = 'AL'
+LEFT JOIN people as p
+ON a1.playerid = p.playerid
+
+WHERE a2.awardid = 'TSN Manager of the Year' AND a3.awardid = 'TSN Manager of the Year'
+ORDER BY a1.playerid
+
+--
+
+-- KM
+
+WITH subq1 as (SELECT playerid, awardid, COUNT(DISTINCT lgid) as lg_count
+FROM awardsmanagers as am
+WHERE awardid = 'TSN Manager of the Year' AND lgid IN ('NL', 'AL')
+GROUP BY playerid, awardid
+HAVING COUNT(DISTINCT lgid) = 2),
+
+subq2 as (SELECT s1.playerid, s1.awardid, lg_count, yearid, lgid
+FROM subq1 as s1
+INNER JOIN awardsmanagers as am
+ON s1.playerid = am.playerid AND s1.awardid = am.awardid)
+
+SELECT s2.yearid, CONCAT(namefirst, ' ', namelast) as full_name, name, s2.lgid
+FROM subq2 as s2
+INNER JOIN people as p
+ON s2.playerid = p.playerid
+INNER JOIN managers as m
+ON s2.yearid = m.yearid AND s2.lgid = m.lgid AND s2.playerid = m.playerid
+INNER JOIN teams as t
+ON m.yearid = t.yearid AND m.teamid = t.teamid AND m.lgid = t.lgid
+ORDER BY full_name
+
+--
 
 -- 10. Find all players who hit their career highest number of home runs in 2016. Consider only players who have played in the league for at least 10 years, and who hit at least one home run in 2016. Report the players' first and last names and the number of home runs they hit in 2016.
+
+-- batting.hr, batting.yearid, people.namnfirst, people.namelast
+
+-- CTE storing the playerid, and year of their max hr's
+
+WITH maxhomeruns AS
+                (SELECT playerid, 
+                        yearid, 
+                        hr
+                FROM batting
+                WHERE yearid = '2016' 
+                    AND hr > '0')
+
+SELECT DISTINCT(m.playerid), m.hr AS max2016, MAX(b.hr) AS careerhigh, m.yearid
+FROM maxhomeruns as m
+JOIN people as p
+    ON p.playerid = m.playerid
+JOIN batting as b
+    ON b.playerid = p.playerid
+WHERE max2016 > careerhigh
+GROUP BY 1,4
+ORDER BY 2 DESC
+
+
 
 
 -- **Open-ended questions**
