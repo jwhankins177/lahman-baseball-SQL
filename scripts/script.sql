@@ -224,38 +224,92 @@ WHERE yearid >= 1970
 GROUP BY 1, 2
 ORDER BY 2 DESC;
 
+-- 
+
 WITH maxwinsperyear AS
-    (SELECT t.yearid, MAX(t.w) AS most_wins
-     FROM teams as t
-     WHERE t.yearid >= 1970
-     AND t.wswin = 'y'
-     GROUP BY 1
-     HAVING t.w = MAX(t.w)
-     ORDER BY 1)
---SELECT CONCAT(COUNT(DISTINCT(t.yearid))::decimal)/46 as win_percentage
-SELECT CONCAT((ROUND((COUNT(DISTINCT(t.yearid))::decimal)/46, 2)*100), '%') as percent_wins
+                   (SELECT yearid,
+					       MAX(w) as max_wins
+					FROM teams as t
+					WHERE yearid >= 1970
+					GROUP BY 1
+					ORDER BY 1 DESC)
+SELECT CONCAT((ROUND((COUNT(t.yearid)::decimal)/46, 2)*100), '%') as percent_wins
 FROM teams as t
-    INNER JOIN maxwinsperyear AS m
+    LEFT JOIN maxwinsperyear AS m
     USING (yearid)
-WHERE t.w = m.most_wins
-      AND t.wswin = 'y';
-
--- 12 wins.
-
--- SELECT CONCAT((ROUND((COUNT(DISTINCT(t.yearid))::decimal)/46, 2)*100), '%') as percent_wins
--- FROM most_season_wins as msw 
--- INNER JOIN teams as t
--- USING (yearid)
--- WHERE t.w = msw.most_w AND t.wswin = 'Y';
-
-
-
+WHERE t.w = m.max_wins
+      AND t.wswin = 'Y';
+      
+-- ANSWER 26 percent
 
 
 -- 8. Using the attendance figures from the homegames table, find the teams and parks which had the top 5 average attendance per game in 2016 (where average attendance is defined as total attendance divided by number of games). Only consider parks where there were at least 10 games played. Report the park name, team name, and average attendance. Repeat for the lowest 5 average attendance.
 
+-- homegames.attendance, homegames.team, homegames.park, homegames.games
+
+SELECT games, attendance
+FROM homegames
+WHERE year = 2016;
+
+SELECT park, team, attendance/games AS avg_atten
+FROM homegames
+WHERE year = 2016 AND games >= 10
+ORDER BY 3 DESC
+LIMIT 5;
+
+--
+
+SELECT p.park_name, h.team, h.attendance/h.games AS avg_atten
+FROM homegames as h
+JOIN parks as p
+    ON h.park = p.park
+WHERE year = 2016 AND games >= 10
+ORDER BY 3 DESC
+LIMIT 5;
+
+-- ANSWER MOST
+-- "Dodger Stadium"	    "LAN"	45719
+-- "Busch Stadium III"	"SLN"	42524
+-- "Rogers Centre"	    "TOR"	41877
+-- "AT&T Park"	        "SFN"	41546
+-- "Wrigley Field"	    "CHN"	39906
+
+SELECT p.park_name, h.team, h.attendance/h.games AS avg_atten
+FROM homegames as h
+JOIN parks as p
+    ON h.park = p.park
+WHERE year = 2016 AND games >= 10
+ORDER BY 3
+LIMIT 5;
+
+-- ANSWER - LEAST
+-- "Tropicana Field"	                "TBA"	15878
+-- "Oakland-Alameda County Coliseum"	"OAK"	18784
+-- "Progressive Field"	                "CLE"	19650
+-- "Marlins Park"	                    "MIA"	21405
+-- "U.S. Cellular Field"	            "CHA"	21559
+
+-- IF TIME ALLOWS
+-- JOIN ONTO TEAMS TO GET FULL TEAM NAME.
 
 -- 9. Which managers have won the TSN Manager of the Year award in both the National League (NL) and the American League (AL)? Give their full name and the teams that they were managing when they won the award.
+
+-- awardsmanager.awardid, awardsmanager.playerid, awardsmanger.league, people.namefirst, people.namelast, teams.name
+-- join awardsmanagers to people on playerid, join awardsmanager to team on yearid.
+-- CTE to get a list of names that have one both.
+
+SELECT * 
+FROM awardsmanagers
+--WHERE playerid = 'wrighha01';
+
+SELECT * 
+FROM people
+WHERE playerid = 'wrighha01';
+
+WITH doublewinners AS
+                   (SELECT playerid, lgid
+                   FROM awardsmanagers
+                   WHERE LOWER(awardid) = LOWER('tsn manager of the year'))
 
 -- 10. Find all players who hit their career highest number of home runs in 2016. Consider only players who have played in the league for at least 10 years, and who hit at least one home run in 2016. Report the players' first and last names and the number of home runs they hit in 2016.
 
