@@ -238,7 +238,7 @@ FROM teams as t
     LEFT JOIN maxwinsperyear AS m
     USING (yearid)
 WHERE t.w = m.max_wins
-      AND t.wswin = 'Y';
+    AND t.wswin = 'Y';
       
 -- ANSWER 26 percent
 
@@ -353,10 +353,11 @@ JOIN teams as t
     ON n.lgid = t.lgid
 JOIN awardsmanagers as w
     ON n.playerid = w.playerid
-WHERE LOWER(w.awardid) = LOWER('tsn manager of the year')
+WHERE LOWER(w.awardid) = LOWER('tsn managEr of the year')
     OR LOWER(w.awardid) = LOWER('tsn manager of the year')
 
 --
+--NM
 
 WITH team_name AS
 (SELECT name
@@ -407,32 +408,100 @@ ORDER BY full_name
 
 -- batting.hr, batting.yearid, people.namnfirst, people.namelast
 
--- CTE storing the playerid, and year of their max hr's
+-- Display if the max home runs they have hit is in the year 2016
+-- Now I need to only display the "Y" in the final
+-- Then link out with first and last name. 
+-- 264 total currently
 
 WITH maxhomeruns AS
                 (SELECT playerid, 
                         yearid, 
                         hr
-                FROM batting
-                WHERE yearid = '2016' 
-                    AND hr > '0')
+                 FROM batting
+                 WHERE yearid = '2016' 
+                 AND hr > '0'),
+	 max_in_2016 AS
+			    (SELECT playerid,
+						yearid,
+						MAX(hr) AS max_hr 
+			     FROM batting
+				 WHERE hr > '0'
+				 GROUP BY 1,2),
+     total_years AS 
+                (SELECT playerid, 
+                 COUNT(yearid) AS years_played
+                 FROM batting
+                 GROUP BY playerid)
 
-SELECT DISTINCT(m.playerid), m.hr AS max2016, MAX(b.hr) AS careerhigh, m.yearid
+SELECT DISTINCT(m.playerid), m.hr AS max2016, MAX(b.hr) AS careerhigh, m.yearid, max_hr
+	   CASE WHEN m.hr >= MAX(b.hr) THEN 'Y'
+	   		ELSE 'N' 
+	   		END AS max_in_2016
 FROM maxhomeruns as m
 JOIN people as p
     ON p.playerid = m.playerid
 JOIN batting as b
     ON b.playerid = p.playerid
-WHERE max2016 > careerhigh
-GROUP BY 1,4
-ORDER BY 2 DESC
+JOIN max_in_2016 as ma
+	ON m.playerid = ma.playerid
+JOIN total_years as ty
+    ON m.playerid = ty.playerid
+WHERE max_hr = m.hr AND years_played >= 10
+GROUP BY 4,1,2
+ORDER BY max_hr DESC;
 
+-- ANSWER 
+-- "canoro01"	39	39	2016	"Y"
+-- "colonba01"	1	1	2016	"Y"
+-- "davisra01"	12	12	2016	"Y"
+-- "encared01"	42	42	2016	"Y"
+-- "latosma01"	1	1	2016	"Y"
+-- "liriafr01"	1	1	2016	"Y"
+-- "napolmi01"	34	34	2016	"Y"
+-- "paganan01"	12	12	2016	"Y"
+-- "rosalad01"	13	13	2016	"Y"
+-- "uptonju01"	31	31	2016	"Y"
+-- "valenda01"	17	17	2016	"Y"
+-- "wainwad01"	2	2	2016	"Y"
+-- "wilsobo02"	4	4	2016	"Y"
+
+-- KM
+
+WITH subq1 as (SELECT playerid, yearid, teamid, lgid, hr
+FROM batting as b
+WHERE yearid = 2016
+ORDER BY hr DESC),
+
+subq2 as (SELECT playerid, MAX(hr) as max_hr
+FROM batting as b
+GROUP BY playerid
+ORDER BY max_hr DESC),
+
+subq3 as (SELECT playerid, COUNT(yearid) as years_played
+          FROM batting
+          GROUP BY playerid)
+
+
+SELECT s1.playerid, CONCAT(namefirst, ' ', namelast), max_hr, years_played, yearid
+FROM subq1 as s1
+INNER JOIN subq2 
+USING (playerid)
+INNER JOIN subq3 as s3
+USING (playerid)
+INNER JOIN people as p 
+USING (playerid)
+WHERE max_hr = hr and hr > 0 AND years_played >= 10
+ORDER BY max_hr DESC
 
 
 
 -- **Open-ended questions**
 
 -- 11. Is there any correlation between number of wins and team salary? Use data from 2000 and later to answer this question. As you do this analysis, keep in mind that salaries across the whole league tend to increase together, so you may want to look on a year-by-year basis.
+
+--Standardized salary
+-- SELECT * 
+FROM salaries
 
 -- 12. In this question, you will explore the connection between number of wins and attendance.
 --     <ol type="a">
