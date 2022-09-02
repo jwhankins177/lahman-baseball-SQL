@@ -447,31 +447,67 @@ ORDER BY homeruns DESC;
 
 -- 11. Is there any correlation between number of wins and team salary? Use data from 2000 and later to answer this question. As you do this analysis, keep in mind that salaries across the whole league tend to increase together, so you may want to look on a year-by-year basis.
 
-people to salaries to team, playerid = playerid , teamid = teamid
+-- people to salaries to team, playerid = playerid , teamid = teamid
 
---Standardized salary
-SELECT t.name, 
+--Standardized salary -- Look at overall salary trend upwards and use that.
+SELECT t.name,
+       --p.playerid,
        t.yearid,
        t.w,
-       (SUM(DISTINCT(salary))::DECIMAL)::MONEY,
-       t.w/(SUM(DISTINCT(salary))::DECIMAL)
+       SUM(salary::DECIMAL::MONEY)
+       --t.w/(SUM(DISTINCT(salary))::DECIMAL)
 FROM people as p
 JOIN salaries as s
     ON p.playerid = s.playerid
 JOIN teams as t
     ON s.teamid = t.teamid
-WHERE t.yearid >= '2000'
-GROUP BY 1, 2, 3 
-ORDER BY 4 DESC;
+WHERE t.yearid = '2015' AND t.name = 'Miami Marlins'
+GROUP BY 1, 2, 3
+ORDER BY 1 DESC;
+
+-- Step 1. Salary per year per team
+SELECT teamid, SUM(salary::DECIMAL::MONEY)
+FROM salaries
+WHERE yearid = '2000'
+GROUP BY teamid
+ORDER BY 2 DESC
+
+-- Step 2 part 2
+WITH totalsalary AS (SELECT teamid,
+                            yearid,
+                            SUM(salary::DECIMAL::MONEY) AS peryear
+                  FROM salaries
+                  WHERE yearid >= '2000'
+                  GROUP BY 1, 2
+                  ORDER BY 1 DESC),
+     teamwins AS (SELECT name,
+                         yearid,
+                         teamid,
+                         SUM(w) as wins
+                  FROM teams
+                  GROUP BY 1, 2, 3
+                  ORDER BY 2 DESC, 3 DESC)
+SELECT t.name,
+       peryear,
+       t.yearid,
+       wins
+FROM teamwins AS t
+LEFT JOIN totalsalary AS ts
+    ON t.teamid = ts.teamid
+GROUP BY 1, 2, 3,4
+ORDER BY 3 DESC
+
+
 
 
 
 
 -- 12. In this question, you will explore the connection between number of wins and attendance.
---     <ol type="a">
---       <li>Does there appear to be any correlation between attendance at home games and number of wins? </li>
---       <li>Do teams that win the world series see a boost in attendance the following year? What about teams that made the playoffs? Making the playoffs means either being a division winner or a wild card winner.</li>
---     </ol>
+--     Does there appear to be any correlation between attendance at home games and number of wins? </li>
+--     Do teams that win the world series see a boost in attendance the following year? What about teams that made the playoffs? Making --     the playoffs means either being a division winner or a wild card winner.
 
 
--- 13. It is thought that since left-handed pitchers are more rare, causing batters to face them less often, that they are more effective. Investigate this claim and present evidence to either support or dispute this claim. First, determine just how rare left-handed pitchers are compared with right-handed pitchers. Are left-handed pitchers more likely to win the Cy Young Award? Are they more likely to make it into the hall of fame?
+-- 13. It is thought that since left-handed pitchers are more rare, causing batters to face them less often, that they are more         --     effective. Investigate this claim and present evidence to either support or dispute this claim. 
+--     First, determine just how rare left-handed pitchers are compared with right-handed pitchers. 
+--     Are left-handed pitchers more likely to win the Cy Young Award? 
+--     Are they more likely to make it into the hall of fame?
