@@ -306,33 +306,8 @@ SELECT *
 FROM people
 WHERE playerid = 'johnsda02';
 
---
 -- List of names who have won both.
-
-WITH nlwinners AS
-                   (SELECT playerid, lgid, awardid, yearid
-                   FROM awardsmanagers
-                   WHERE LOWER(awardid) = LOWER('tsn manager of the year')
-                   AND LOWER(lgid) = LOWER('NL')),
-     alwinners AS
-                   (SELECT playerid, lgid, awardid, yearid
-                   FROM awardsmanagers
-                   WHERE LOWER(awardid) = LOWER('tsn manager of the year')
-                   AND LOWER(lgid) = LOWER('AL'))
-SELECT DISTINCT(p.namefirst, p.namelast)
-FROM nlwinners AS n
-JOIN alwinners AS a
-    ON n.playerid = a.playerid
-JOIN people as p
-    ON n.playerid = p.playerid
-JOIN teams as t
-    ON n.lgid = t.lgid;
-    
--- ANSWER "(Davey,Johnson)"
---        "(Jim,Leyland)"
-
---
-
+/* You have the names. */
 WITH nlwinners AS
                    (SELECT playerid, lgid, awardid, yearid 
                    FROM awardsmanagers
@@ -355,29 +330,9 @@ JOIN awardsmanagers as w
     ON n.playerid = w.playerid
 WHERE LOWER(w.awardid) = LOWER('tsn managEr of the year')
     OR LOWER(w.awardid) = LOWER('tsn manager of the year')
-
---
---NM
-
-WITH team_name AS
-(SELECT name
-FROM teams
-LEFT JOIN managers
-USING (teamid))
-
-SELECT DISTINCT a1.playerid, CONCAT(p.namefirst,' ',p.namelast) AS full_name, a2.awardid, a2.yearid AS NL_year, a2.lgid, a3.yearid AS AL_year, a3.lgid
-FROM awardsmanagers AS a1
-JOIN awardsmanagers AS a2
-ON a1.playerid = a2.playerid AND a2.lgid = 'NL'
-JOIN awardsmanagers AS a3
-ON a2.playerid = a3.playerid AND a3.lgid = 'AL'
-LEFT JOIN people as p
-ON a1.playerid = p.playerid
-
-WHERE a2.awardid = 'TSN Manager of the Year' AND a3.awardid = 'TSN Manager of the Year'
-ORDER BY a1.playerid
-
---
+    
+-- ANSWER "(Davey,Johnson)"
+--        "(Jim,Leyland)"
 
 -- KM
 
@@ -429,14 +384,15 @@ WITH maxhomeruns AS
 				 GROUP BY 1,2),
      total_years AS 
                 (SELECT playerid, 
-                 COUNT(yearid) AS years_played
+                 COUNT(yearid) AS played
                  FROM batting
                  GROUP BY playerid)
 
-SELECT DISTINCT(m.playerid), m.hr AS max2016, MAX(b.hr) AS careerhigh, m.yearid, max_hr
-	   CASE WHEN m.hr >= MAX(b.hr) THEN 'Y'
-	   		ELSE 'N' 
-	   		END AS max_in_2016
+SELECT DISTINCT(m.playerid), CONCAT(namefirst, ' ', namelast), m.hr AS max2016, MAX(b.hr) AS careerhigh, m.yearid, max_hr,
+	   CASE WHEN m.hr >= MAX(b.hr) 
+            THEN 'Y'
+	   ELSE 'N' 
+	   END AS max_in_2016
 FROM maxhomeruns as m
 JOIN people as p
     ON p.playerid = m.playerid
@@ -446,62 +402,70 @@ JOIN max_in_2016 as ma
 	ON m.playerid = ma.playerid
 JOIN total_years as ty
     ON m.playerid = ty.playerid
-WHERE max_hr = m.hr AND years_played >= 10
-GROUP BY 4,1,2
-ORDER BY max_hr DESC;
+WHERE max_hr = b.hr AND played >= 10
+GROUP BY 1,2,3,5,6
+ORDER BY max_in_2016 DESC, max_hr DESC;
 
 -- ANSWER 
--- "canoro01"	39	39	2016	"Y"
--- "colonba01"	1	1	2016	"Y"
--- "davisra01"	12	12	2016	"Y"
--- "encared01"	42	42	2016	"Y"
--- "latosma01"	1	1	2016	"Y"
--- "liriafr01"	1	1	2016	"Y"
--- "napolmi01"	34	34	2016	"Y"
--- "paganan01"	12	12	2016	"Y"
--- "rosalad01"	13	13	2016	"Y"
--- "uptonju01"	31	31	2016	"Y"
--- "valenda01"	17	17	2016	"Y"
--- "wainwad01"	2	2	2016	"Y"
--- "wilsobo02"	4	4	2016	"Y"
+"Nelson Cruz"	    43
+"Edwin Encarnacion"	42
+"Nelson Cruz"	    43
+"Robinson Cano"	    39
+"Edwin Encarnacion"	42
+"Miguel Cabrera"	38
+"Chris Davis"	    38
+"David Ortiz"	    38
 
--- KM
+-- JM
 
-WITH subq1 as (SELECT playerid, yearid, teamid, lgid, hr
-FROM batting as b
-WHERE yearid = 2016
-ORDER BY hr DESC),
+WITH max_homers AS 
+               (SELECT
+                    playerid,
+                    MAX(hr) AS career_highest
+                FROM batting
+                GROUP BY playerid
+                ORDER BY career_highest DESC)
 
-subq2 as (SELECT playerid, MAX(hr) as max_hr
-FROM batting as b
-GROUP BY playerid
-ORDER BY max_hr DESC),
-
-subq3 as (SELECT playerid, COUNT(yearid) as years_played
-          FROM batting
-          GROUP BY playerid)
-
-
-SELECT s1.playerid, CONCAT(namefirst, ' ', namelast), max_hr, years_played, yearid
-FROM subq1 as s1
-INNER JOIN subq2 
-USING (playerid)
-INNER JOIN subq3 as s3
-USING (playerid)
-INNER JOIN people as p 
-USING (playerid)
-WHERE max_hr = hr and hr > 0 AND years_played >= 10
-ORDER BY max_hr DESC
+SELECT
+    p.namelast || ', ' || p.namefirst AS name,
+    SUM(hr) AS homeruns
+FROM batting AS b
+LEFT JOIN people AS p
+    ON b.playerid = p.playerid
+JOIN max_homers AS m
+    ON b.playerid = m.playerid
+WHERE hr >= 1
+    AND yearid = 2016
+    AND debut :: DATE <= '2006-12-31'
+    AND b.hr = m.career_highest
+GROUP BY name
+ORDER BY homeruns DESC;
 
 
-
+--
 -- **Open-ended questions**
 
 -- 11. Is there any correlation between number of wins and team salary? Use data from 2000 and later to answer this question. As you do this analysis, keep in mind that salaries across the whole league tend to increase together, so you may want to look on a year-by-year basis.
 
+people to salaries to team, playerid = playerid , teamid = teamid
+
 --Standardized salary
--- SELECT * 
-FROM salaries
+SELECT t.name, 
+       t.yearid,
+       t.w,
+       (SUM(DISTINCT(salary))::DECIMAL)::MONEY,
+       t.w/(SUM(DISTINCT(salary))::DECIMAL)
+FROM people as p
+JOIN salaries as s
+    ON p.playerid = s.playerid
+JOIN teams as t
+    ON s.teamid = t.teamid
+WHERE t.yearid >= '2000'
+GROUP BY 1, 2, 3 
+ORDER BY 4 DESC;
+
+
+
 
 -- 12. In this question, you will explore the connection between number of wins and attendance.
 --     <ol type="a">
